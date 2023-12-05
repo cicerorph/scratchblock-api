@@ -18,14 +18,14 @@ app.get('/generate/:q', async (req, res) => {
     const args = req.params.q.split(' ');
     const query = `#?style=scratch3&script=${encodeURIComponent(args.join(' '))}`;
 
-    // Launch Puppeteer browser with chrome-aws-lambda
-    const browser = await puppeteer.launch({
-      args: [...chrome.args, '--hide-scrollbars', '--disable-web-security'],
-      defaultViewport: chrome.defaultViewport,
-      executablePath: await chrome.executablePath,
-      headless: true,
-      ignoreHTTPSErrors: true,
+    const browser = await chrome.puppeteer.launch({
+        args: [...chromium.args, '--hide-scrollbars', '--disable-web-security'],
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath,
+        headless: true,
+        ignoreHTTPSErrors: true,
     });
+
     
     const page = await browser.newPage();
 
