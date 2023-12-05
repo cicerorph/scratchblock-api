@@ -8,6 +8,6 @@
   },
   "dependencies": {
     "express": "^4.17.1",
-    "scratchblocks2": "^1.4.0"
+    "scratchblocks": "^1.4.0"
   }
 }
