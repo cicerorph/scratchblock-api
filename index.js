@@ -1,13 +1,29 @@
-let chrome = {};
-let puppeteer;
+const puppeteer = require("puppeteer-core");
+const chrome = require("chrome-aws-lambda");
 
-if (process.env.AWS_LAMBDA_FUNCTION_VERSION) {
-  // running on the Vercel platform.
-  const chrome = require('chrome-aws-lambda');
-  const puppeteer = require('puppeteer-core');
-} else {
-  // running locally.
-  const puppeteer = require('puppeteer');
+const exePath =
+  process.platform === "win32"
+    ? "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"
+    : process.platform === "linux"
+    ? "/usr/bin/google-chrome"
+    : "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+
+async function getOptions(isDev) {
+  let options;
+  if (isDev) {
+    options = {
+      args: [],
+      executablePath: exePath,
+      headless: true,
+    };
+  } else {
+    options = {
+      args: chrome.args,
+      executablePath: await chrome.executablePath,
+      headless: chrome.headless,
+    };
+  }
+  return options;
 }
 
 // Create an Express application
@@ -18,15 +34,11 @@ app.get('/generate/:q', async (req, res) => {
     const args = req.params.q.split(' ');
     const query = `#?style=scratch3&script=${encodeURIComponent(args.join(' '))}`;
 
-    const browser = await chrome.puppeteer.launch({
-        args: [...chromium.args, '--hide-scrollbars', '--disable-web-security'],
-        defaultViewport: chromium.defaultViewport,
-        executablePath: await chromium.executablePath,
-        headless: true,
-        ignoreHTTPSErrors: true,
-    });
+    const isDev = req.query.isDev === "true";
 
-    
+    const options = await getOptions(isDev);
+
+    const browser = await puppeteer.launch(options);
     const page = await browser.newPage();
 
     // Navigate to the scratchblocks page
