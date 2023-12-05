@@ -51,10 +51,10 @@ async function generateBlocksImage(args, browser) {
   return image;
 }
 
-app.get('/', async (req, res) => {
-  const pageToScreenshot = req.query.page;
+app.get('/:page', async (req, res) => {
+  const pageToScreenshot = req.params.page;
   const isDev = req.query.isDev === "true";
-  const blocksArgs = req.query.blocksArgs; // Assuming you pass blocksArgs as a query parameter
+  const blocksArgs = req.query.q; // Assuming you pass blocksArgs as a query parameter
 
   try {
     if (!pageToScreenshot.includes("https://")) {
