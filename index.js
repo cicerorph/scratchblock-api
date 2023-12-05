@@ -1,6 +1,6 @@
 // Import necessary modules
 const express = require('express');
-const puppeteer = require('puppeteer');
+const chromium = require('chrome-aws-lambda');
 
 // Create an Express application
 const app = express();
@@ -10,8 +10,15 @@ app.get('/generate/:q', async (req, res) => {
     const args = req.params.q.split(' ');
     const query = `#?style=scratch3&script=${encodeURIComponent(args.join(' '))}`;
 
-    // Launch Puppeteer browser
-    const browser = await puppeteer.launch();
+    // Launch Puppeteer browser with chrome-aws-lambda
+    const browser = await chromium.puppeteer.launch({
+        args: [...chromium.args, '--hide-scrollbars', '--disable-web-security'],
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath,
+        headless: true,
+        ignoreHTTPSErrors: true,
+    });
+    
     const page = await browser.newPage();
 
     // Navigate to the scratchblocks page
