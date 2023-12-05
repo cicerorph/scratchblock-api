@@ -1,6 +1,9 @@
+const express = require("express");
 const puppeteer = require("puppeteer-core");
 const chrome = require("chrome-aws-lambda");
-const express = require("express");
+
+const app = express();
+const port = process.env.PORT || 3000;
 
 const exePath =
   process.platform === "win32"
@@ -27,87 +30,60 @@ async function getOptions(isDev) {
   return options;
 }
 
-// Create an Express application
-const app = express();
-const port = 3000; // You can use any port you prefer
+async function generateBlocksImage(args, browser) {
+  // Logic to generate blocks image goes here
+  // Adapt this part based on your requirements
+  const page = await browser.newPage();
+  const query = `#?style=scratch3&script=${encodeURIComponent(args.join(' '))}`;
+  await page.goto(`https://scratchblocks.github.io/${query}`, {
+    waitUntil: ['domcontentloaded', 'load']
+  });
 
-app.get('/generate/:q', async (req, res) => {
-    const args = req.params.q.split(' ');
-    const query = `#?style=scratch3&script=${encodeURIComponent(args.join(' '))}`;
+  // Rest of the logic to grab blocks, similar to your previous code...
 
-    const isDev = req.query.isDev === "true";
+  const image = await page.screenshot({
+    type: 'png',
+  });
+
+  // Close the page
+  await page.close();
+
+  return image;
+}
+
+app.get('/', async (req, res) => {
+  const pageToScreenshot = req.query.page;
+  const isDev = req.query.isDev === "true";
+  const blocksArgs = req.query.blocksArgs; // Assuming you pass blocksArgs as a query parameter
+
+  try {
+    if (!pageToScreenshot.includes("https://")) {
+      res.status(404).json({
+        body: "Sorry, we couldn't screenshot that page. Did you include https://?",
+      });
+      return;
+    }
 
     const options = await getOptions(isDev);
-
     const browser = await puppeteer.launch(options);
-    const page = await browser.newPage();
 
-    // Navigate to the scratchblocks page
-    await page.goto(`https://scratchblocks.github.io/${query}`, {
-        waitUntil: ['domcontentloaded', 'load']
-    });
+    // Screenshot logic
+    const pageScreenshot = await generatePageScreenshot(pageToScreenshot, browser);
 
-    // Wait for the page to load (you may adjust the wait time)
-    await page.waitForTimeout(2000);
+    // Blocks image logic
+    const blocksImage = await generateBlocksImage(blocksArgs, browser);
 
-    // Get the HTML content of the page
-    const html = await page.content();
-    const identifier = '<a id="export-svg" class="export-link" download="scratchblocks.svg" href="';
-
-    // Find the link to the SVG image
-    const linkStart = html.substring(html.indexOf(identifier) + identifier.length);
-    const fullLink = decodeURIComponent(linkStart.substring(0, linkStart.indexOf('"')));
-
-    // Open the data URL in a new page
-    const urlPage = await browser.newPage();
-    await urlPage.goto(fullLink, {
-        waitUntil: ['domcontentloaded', 'load']
-    });
-
-    // Close the original page
-    await page.close();
-
-    // Get width and height of the SVG image
-    let svgWidth = 100;
-    let svgHeight = 100;
-    (() => {
-        const a = fullLink.substring(85);
-        const b = a.substring(0, a.indexOf('"'));
-        svgWidth = Number(b) || 100;
-        if (svgWidth > 1920) svgWidth = 1920;
-    })();
-    (() => {
-        const a = fullLink.substring(fullLink.indexOf('height="') + 8);
-        const b = a.substring(0, a.indexOf('"'));
-        svgHeight = Number(b) || 100;
-        if (svgHeight > 1080) svgHeight = 1080;
-    })();
-
-    // Generate the image
-    const image = await urlPage.screenshot({
-        type: 'png',
-        omitBackground: true,
-        clip: {
-            x: 0,
-            y: 0,
-            width: svgWidth,
-            height: svgHeight,
-        },
-    });
-
-    // Close the new page
-    await urlPage.close();
-
-    // Close the browser
     await browser.close();
 
-    // Send the generated image as a response
-    res.set('Content-Type', 'image/png');
-    res.send(image);
+    res.status(200).header("Content-Type", "image/png").send(blocksImage);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({
+      body: "Sorry, Something went wrong!",
+    });
+  }
 });
 
-
-// Start the Express server
 app.listen(port, () => {
-    console.log(`Server is running at http://localhost:${port}`);
+  console.log(`Server is running at http://localhost:${port}`);
 });
