@@ -1,5 +1,6 @@
 const puppeteer = require("puppeteer-core");
 const chrome = require("chrome-aws-lambda");
+const express = require("express");
 
 const exePath =
   process.platform === "win32"
