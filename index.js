@@ -51,7 +51,7 @@ async function generateBlocksImage(args, browser) {
   return image;
 }
 
-app.get('/:page', async (req, res) => {
+app.get('/generate/:page', async (req, res) => {
   const pageToScreenshot = req.params.page;
   const isDev = req.query.isDev === "true";
   const blocksArgs = req.query.q; // Assuming you pass blocksArgs as a query parameter
